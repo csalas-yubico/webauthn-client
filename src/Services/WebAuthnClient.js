@@ -2,12 +2,13 @@ const WebAuthnClient = {
   startRegistration,
   finishRegistration,
   startAuthentication,
-  finishAuthentication
+  finishAuthentication,
+  getCredentials
 };
 
-const baseURL = "http://localhost:8080/passkey"
+const baseURL = "http://localhost:8080/v1"
 
-async function startRegistration(username, UID) {
+async function startRegistration(username) {
   try {
     const requestOptions = {
       method: "POST",
@@ -15,19 +16,25 @@ async function startRegistration(username, UID) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        username: username, //"CodyTest",
-        uid: UID, //"c29c0704-70db-11ed-a1eb-0242ac120002"
+        userName: username, //"CodyTest",
+        displayName: "username",
+        attestation: "direct",
+        authenticatorSelection: {
+          residentKey: "preferred",
+          userVerification: "preferred"
+        }
       }),
     };
 
     const response = await fetch(
-      `${baseURL}/register/start`,
+      `${baseURL}/attestation/options`,
       requestOptions
     );
-    const responseJSON = await response.json();
 
+    const responseJSON = await response.json();
     return responseJSON;
   } catch (error) {
+    console.log(error.message);
     throw error;
   }
 }
@@ -35,25 +42,26 @@ async function startRegistration(username, UID) {
 async function finishRegistration(
   requestID,
   makeCredentialResponse,
-  publicKeyCredentialCreationOptions
 ) {
   try {
+    // Add requestId to the makeCredentialResponse
+    makeCredentialResponse.requestId = requestID
+
     const requestOptions = {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        makeCredentialResponse: makeCredentialResponse,
-        publicKeyCredentialCreationOptions: publicKeyCredentialCreationOptions,
         requestId: requestID,
+        makeCredentialResult: makeCredentialResponse
       }),
     };
 
     console.log(requestOptions);
 
     const response = await fetch(
-      `${baseURL}/register/finish`,
+      `${baseURL}/attestation/result`,
       requestOptions
     );
     const responseJSON = await response.json();
@@ -64,10 +72,43 @@ async function finishRegistration(
   }
 }
 
-async function startAuthentication() {
+async function getCredentials(username) {
   try {
+    const requestOptions = {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    };
+
+    const response = await fetch(`${baseURL}/user/credentials/${username}`, requestOptions);
+
+    const responseJSON = await response.json();
+
+    console.log(responseJSON);
+
+    return responseJSON;
+
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function startAuthentication(username) {
+  try {
+
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userName: username, //"CodyTest",
+      }),
+    };
+    
     const response = await fetch(
-      `${baseURL}/authenticate/start`);
+      `${baseURL}/assertion/options`, requestOptions);
     const responseJSON = await response.json();
 
     console.log(responseJSON);
@@ -78,7 +119,7 @@ async function startAuthentication() {
   }
 }
 
-async function finishAuthentication(requestId, assertion, publicKeyCredentialCreationOptions) {
+async function finishAuthentication(requestId, assertion) {
   try {
     const requestOptions = {
       method: "POST",
@@ -86,14 +127,13 @@ async function finishAuthentication(requestId, assertion, publicKeyCredentialCre
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        assertionResponse: assertion,
-        publicKeyCredentialRequestOptions: publicKeyCredentialCreationOptions,
+        assertionResult: assertion,
         requestId: requestId,
       }),
     };
-    const response = await fetch(`${baseURL}/authenticate/finish`, requestOptions);
+    const response = await fetch(`${baseURL}/assertion/result`, requestOptions);
 
-    const responseJSON = response.json();
+    const responseJSON = await response.json();
 
     console.log(responseJSON);
     return responseJSON;

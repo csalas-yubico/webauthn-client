@@ -3,6 +3,7 @@ import { Col, Container, Row, Stack } from "react-bootstrap";
 
 import Authenticate from "./Components/Authenticate";
 import Register from "./Components/Register";
+import Credentials from "./Components/Credentials";
 
 const App = function () {
 
@@ -13,9 +14,11 @@ const App = function () {
         <div>
           <Register />
         </div>
-        <hr />
         <div>
           <Authenticate />
+        </div>
+        <div>
+          <Credentials />
         </div>
       </Stack>
     </Container>
